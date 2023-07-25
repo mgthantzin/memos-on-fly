@@ -1,16 +1,31 @@
 # memos on fly
 
+English | [中文](README_zh-CN.md)
+
 > Run the self-hosted memo service [memos](https://github.com/usememos/memos) on [fly.io](https://fly.io/). Automatically backup the database to [B2](https://www.backblaze.com/b2/cloud-storage.html) with [litestream](https://litestream.io/).
 
-🙏 Thanks for [linkding-on-fly](https://github.com/fspoettel/linkding-on-fly), the project is inspired by it.
+🙏 Thanks for [linkding-on-fly](https://github.com/fspoettel/linkding-on-fly), the project is inspired by it. If you want to deploy memos with litestream function locally, please visit [hu3rror/memos-litestream](https://github.com/hu3rror/memos-litestream)
 
 ## Prerequisites
 
   - [fly.io](https://fly.io/) account
-  - [backblaze](https://www.backblaze.com/) account or other B2 service account 
-  - [Optional] *If you want to build your own docker image, clone repository from [hu3rror/memos-on-fly-build](https://github.com/hu3rror/memos-on-fly-build).*
+  - [Backblaze](https://www.backblaze.com/) account or other B2 service account 
+  - [Optional] *If you want to build your own docker image, clone repository from [hu3rror/memos-litestream](https://github.com/hu3rror/memos-litestream).* 
+  
+### ⚠️ **WARNING**
+[hu3rror/memos-on-fly-build](https://github.com/hu3rror/memos-on-fly-build) has been deprecated and the maintenance is moved to [hu3rror/memos-litestream](https://github.com/hu3rror/memos-litestream)
 
-## Install flyctl
+If you have used this image before, you can simply change the build image section of your fly.toml to the new image like this:
+
+```diff
+[build]
+-  image = "hu3rror/memos-fly:latest"
++  image = "ghcr.io/hu3rror/memos-litestream:latest"
+```
+
+The new image is universal for both fly.io and local runs~
+
+## Installation
 
 1. Follow [the instructions](https://fly.io/docs/getting-started/installing-flyctl/) to install fly's command-line interface `flyctl`.
 2. [log into flyctl](https://fly.io/docs/getting-started/log-in-to-fly/).
@@ -38,14 +53,13 @@ You can take [fly.example.toml](fly.example.toml) in this repository as a refere
 
   ```toml
   [build]
-    image = "hu3rror/memos-fly:latest"
+    image = "ghcr.io/hu3rror/memos-litestream:latest"
   ```
 
 #### 2. Add an `env` section.
 
   ```toml
   [env]
-    DB_PATH = "/var/opt/memos/memos_prod.db"  # do not change
     LITESTREAM_REPLICA_BUCKET = "<filled_later>"  # change to your litestream bucket name
     LITESTREAM_REPLICA_ENDPOINT = "<filled_later>"  # change to your litestream endpoint url
     LITESTREAM_REPLICA_PATH = "memos_prod.db"  # keep the default or change to whatever path you want
@@ -75,16 +89,16 @@ You can take [fly.example.toml](fly.example.toml) in this repository as a refere
 
   2. Attach the persistent volume to the container by adding a `mounts` section to `fly.toml`.
       ```toml
-      [mounts]
-        source="memos_data"
-        destination="/var/opt/memos"
+      [[mounts]]
+        source = "memos_data"
+        destination = "/var/opt/memos"
       ```
 
-#### 5. Change `internal_port` in `[[services]]`
+#### 5. Add `internal_port` to `[[services]]`
 
 ```toml
-[[services]]
-  internal_port = 5230
+[http_service]
+  internal_port = 5230   # change to 5230
 ```
 
 #### 6. Deploy to fly.io
@@ -170,3 +184,12 @@ Check the output of `flyctl doctor`, every line should be marked as **PASSED**. 
 ### fly does not pull in the latest version of memos
 
 Just run `flyctl deploy --no-cache`
+
+### Memos Telegram bot does not respond
+
+This is due to the fly.toml v2 update, you can modify your fly.toml like:
+
+```toml
+[http_service]
+  auto_stop_machines = false   # change to `false` if you use telegram bot
+```
